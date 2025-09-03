@@ -9,10 +9,10 @@ def send_emails():
         with open("mnc_mails.json", "r") as f:
             data = json.load(f)
     except FileNotFoundError:
-        print("sample.json not found!")
+        print("mnc_mails.json not found!")
         return
     except json.JSONDecodeError:
-        print("Invalid JSON in sample.json!")
+        print("Invalid JSON in mnc_mails.json!")
         return
 
     if not data:
@@ -70,8 +70,8 @@ def send_emails():
         if response.status_code == 200:
             print(f"✅ Successfully sent {len(batch_recipients)} emails")
             
-            # Remove sent emails from the list and update sample.json
-            with open("sample.json", "w") as f:
+            # Remove sent emails from the list and update mnc_mails.json
+            with open("mnc_mails.json", "w") as f:
                 json.dump(remaining_emails, f, indent=2)
             
             print(f"Removed sent emails. {len(remaining_emails)} emails remaining.")
