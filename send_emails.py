@@ -25,17 +25,20 @@ def send_emails():
     subject = "Stop Scrolling. Start Earning — With HeadsIn🚀"
     password = "sJYlSh9xKM4K40"
 
-    # Get current UTC time
-    now_utc = datetime.datetime.utcnow()
-    current_hour = now_utc.hour
+    # Get current Indian Time (IST = UTC+5:30)
+    utc_now = datetime.datetime.utcnow()
+    ist_time = utc_now + datetime.timedelta(hours=5, minutes=30)
+    current_hour = ist_time.hour
 
-    # Define batch schedule (UTC times)
-    batch_times = {10: 100, 12: 100, 14: 100, 16: 100}  # 100 emails per batch
+    print(f"Current Indian Time: {ist_time.strftime('%H:%M')}")
+
+    # Define batch schedule (Indian Time - IST)
+    batch_times = {10: 100, 12: 100, 14: 100, 16: 100}  # 100 emails per batch at 10AM, 12PM, 2PM, 4PM IST
 
     # Determine how many emails to send in this batch
     emails_to_send = batch_times.get(current_hour)
     if emails_to_send is None:
-        print(f"Not a scheduled time: {current_hour}:00 UTC")
+        print(f"Not a scheduled time: {current_hour}:00 IST")
         return
 
     # Take only the number of emails for this batch

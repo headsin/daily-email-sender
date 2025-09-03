@@ -1,12 +1,12 @@
-name: Send Scheduled Emails
+name: Send Scheduled Emails (IST)
 
 on:
   schedule:
-    # Run at 10:00, 12:00, 14:00, 16:00 UTC every day
-    - cron: '0 10 * * *'
-    - cron: '0 12 * * *'
-    - cron: '0 14 * * *'
-    - cron: '0 16 * * *'
+    # Run at 4:30, 6:30, 8:30, 10:30 UTC (which equals 10:00, 12:00, 14:00, 16:00 IST)
+    - cron: '30 4 * * *'  # 4:30 UTC = 10:00 IST
+    - cron: '30 6 * * *'  # 6:30 UTC = 12:00 IST
+    - cron: '30 8 * * *'  # 8:30 UTC = 14:00 IST
+    - cron: '30 10 * * *' # 10:30 UTC = 16:00 IST
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0  # Important for git history
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -29,22 +29,24 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests
 
-    - name: Create sample.json from secret
+    - name: Create mnc_mails.json from secret (if file doesn't exist)
       run: |
-        # Only create sample.json if it doesn't exist or is empty
-        if [ ! -f sample.json ] || [ ! -s sample.json ]; then
-          echo '${{ secrets.EMAIL_DATA }}' > sample.json
+        if [ ! -f mnc_mails.json ] || [ ! -s mnc_mails.json ]; then
+          echo '${{ secrets.EMAIL_DATA }}' > mnc_mails.json
+          echo "Created mnc_mails.json from secret"
+        else
+          echo "mnc_mails.json already exists, using existing file"
         fi
 
     - name: Run email sender
       run: python send_emails.py
 
-    - name: Commit and push if sample.json changed
+    - name: Commit and push if mnc_mails.json changed
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add sample.json
-        git diff --staged --quiet || git commit -m "Remove sent emails [skip ci]"
+        git add mnc_mails.json
+        git diff --staged --quiet || git commit -m "Remove sent emails from mnc_mails.json [skip ci]"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
