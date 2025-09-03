@@ -1,61 +1,90 @@
 import requests
 import json
 import datetime
+import os
 
-# Load email data
-with open("mnc_mails.json", "r") as f:
-    data = json.load(f)
+def send_emails():
+    # Load email data
+    try:
+        with open("mnc_mails.json", "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        print("sample.json not found!")
+        return
+    except json.JSONDecodeError:
+        print("Invalid JSON in sample.json!")
+        return
 
-# Read current index from counter.txt (start from 5600 by default)
-try:
-    with open("counter.txt", "r") as f:
-        start_index = int(f.read().strip())
-except FileNotFoundError:
-    start_index = 5600
+    if not data:
+        print("No emails left to send!")
+        return
 
-# Get current time (UTC) for GitHub Actions
-now_utc = datetime.datetime.utcnow()
-current_hour = now_utc.hour
+    print(f"Loaded {len(data)} email addresses")
 
-# Map batch times (adjust if you're not using UTC)
-batch_times = {
-    10: 0,
-    12: 1,
-    14: 2,
-    16: 3
-}
+    # Your email credentials
+    subject = "Stop Scrolling. Start Earning — With HeadsIn🚀"
+    password = "sJYlSh9xKM4K40"
 
-# Determine batch index based on time
-batch_index = batch_times.get(current_hour)
-if batch_index is None:
-    print(f"Not a scheduled time: {current_hour}:00 UTC")
-    exit()
+    # Get current UTC time
+    now_utc = datetime.datetime.utcnow()
+    current_hour = now_utc.hour
 
-# Compute batch start and end
-emails_per_batch = 100
-batch_start = start_index + (batch_index * emails_per_batch)
-batch_end = batch_start + emails_per_batch
+    # Define batch schedule (UTC times)
+    batch_times = {10: 100, 12: 100, 14: 100, 16: 100}  # 100 emails per batch
 
-print(f"Sending emails {batch_start} to {batch_end}")
+    # Determine how many emails to send in this batch
+    emails_to_send = batch_times.get(current_hour)
+    if emails_to_send is None:
+        print(f"Not a scheduled time: {current_hour}:00 UTC")
+        return
 
-# Send emails
-for i in range(batch_start, min(batch_end, len(data))):
-    email = data[i]["email"]
-    userName = data[i]["userName"]
+    # Take only the number of emails for this batch
+    batch_recipients = data[:emails_to_send]
+    remaining_emails = data[emails_to_send:]
 
+    print(f"Sending {len(batch_recipients)} emails this batch")
+    print(f"Will remain {len(remaining_emails)} emails after sending")
+
+    # Prepare payload
     payload = {
-        "email": email,
-        "userName": userName
+        "sendTo": batch_recipients,
+        "subject": subject,
+        "password": password
     }
 
-    response = requests.post(
-        "https://application-api.headsin.co/api/v1/send-email?emailType=candidate",
-        json=payload
-    )
+    try:
+        print("Sending batch...")
+        
+        response = requests.post(
+            "https://application-api.headsin.co/api/v1/send-email",
+            json=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout=30
+        )
 
-    print(f"{i + 1}: Sent to {email} - Status Code: {response.status_code}")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print(f"✅ Successfully sent {len(batch_recipients)} emails")
+            
+            # Remove sent emails from the list and update sample.json
+            with open("sample.json", "w") as f:
+                json.dump(remaining_emails, f, indent=2)
+            
+            print(f"Removed sent emails. {len(remaining_emails)} emails remaining.")
+                
+        else:
+            print(f"❌ Failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            # Don't remove emails if sending failed
+    
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Network error: {e}")
 
-# Only update the counter after last batch (4PM = index 3)
-if batch_index == 3:
-    with open("counter.txt", "w") as f:
-        f.write(str(batch_end))
+    print("Batch processing completed!")
+
+if __name__ == "__main__":
+    send_emails()

@@ -1,36 +1,50 @@
-name: Daily Email Sender
+name: Send Scheduled Emails
 
 on:
   schedule:
-    - cron: '0 10 * * *'   # 10:00 AM UTC
-    - cron: '0 12 * * *'   # 12:00 PM UTC
-    - cron: '0 14 * * *'   # 2:00 PM UTC
-    - cron: '0 16 * * *'   # 4:00 PM UTC
-  workflow_dispatch:
+    # Run at 10:00, 12:00, 14:00, 16:00 UTC every day
+    - cron: '0 10 * * *'
+    - cron: '0 12 * * *'
+    - cron: '0 14 * * *'
+    - cron: '0 16 * * *'
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   send-emails:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Important for git history
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.x'
+        python-version: '3.9'
 
     - name: Install dependencies
-      run: pip install requests
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
 
-    - name: Run email script
+    - name: Create sample.json from secret
+      run: |
+        # Only create sample.json if it doesn't exist or is empty
+        if [ ! -f sample.json ] || [ ! -s sample.json ]; then
+          echo '${{ secrets.EMAIL_DATA }}' > sample.json
+        fi
+
+    - name: Run email sender
       run: python send_emails.py
 
-    - name: Commit counter update
+    - name: Commit and push if sample.json changed
       run: |
-        git config --global user.name "github-actions"
-        git config --global user.email "actions@github.com"
-        git add counter.txt
-        git commit -m "Update counter.txt" || echo "No changes"
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add sample.json
+        git diff --staged --quiet || git commit -m "Remove sent emails [skip ci]"
         git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
