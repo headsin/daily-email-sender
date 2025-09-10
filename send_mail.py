@@ -63,19 +63,27 @@ def process_batch(batch_size=100):
     print(f"📩 Found {len(rows)} emails to send")
 
     if not rows:
+        cursor.close()
+        conn.close()
         return
 
     # ✅ Build correct payload list
-    recipients = [{"email": email, "userName": name} for _, name, email in rows]
+    recipients = [{"email": email, "userName": name} for uid, name, email in rows]
     ids = [uid for uid, _, _ in rows]
 
+    print("📝 Preparing to mark these IDs as sent:", ids)
+
     if send_bulk_mails(recipients):
-        cursor.execute(
-            "UPDATE email_data SET is_sended = TRUE WHERE id = ANY(%s);",
-            (ids,)
-        )
-        conn.commit()
-        print(f"✅ Marked {len(ids)} as sent")
+        try:
+            cursor.execute(
+                "UPDATE email_data SET is_sended = TRUE WHERE id = ANY(%s);",
+                (ids,)
+            )
+            conn.commit()
+            print(f"✅ Successfully marked {len(ids)} emails as sent")
+        except Exception as db_err:
+            conn.rollback()
+            print(f"❌ Database update failed: {db_err}")
 
     cursor.close()
     conn.close()
