@@ -1,3 +1,5 @@
+psycopg2-binary
 requests
-json
-datetime
+jsonlib
+streamlit
+pandas
