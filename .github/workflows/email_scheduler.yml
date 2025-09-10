@@ -24,7 +24,7 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: pip install psycopg2-binary
+        run: pip install -r requirements.txt
 
       - name: Run batch mail script
         run: python send_mail.py
