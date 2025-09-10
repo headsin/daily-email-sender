@@ -1,6 +1,7 @@
 name: Email Batch Sender
 
 on:
+  workflow_dispatch:   # 👈 allows manual trigger from GitHub Actions tab
   schedule:
     # 9:00 AM IST -> 3:30 AM UTC
     - cron: "30 3 * * *"
