@@ -49,7 +49,7 @@ def send_bulk_mails(recipients):
 
 
 def process_batch(batch_size=100):
-    """Fetch unsent mails, send in bulk, and update status"""
+    """Fetch unsent mails, send in bulk, and DELETE them after sending"""
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
 
@@ -63,6 +63,8 @@ def process_batch(batch_size=100):
     print(f"📩 Found {len(rows)} emails to send")
 
     if not rows:
+        cursor.close()
+        conn.close()
         return
 
     # ✅ Build correct payload list
@@ -70,12 +72,13 @@ def process_batch(batch_size=100):
     ids = [uid for uid, _, _ in rows]
 
     if send_bulk_mails(recipients):
+        # ❌ Instead of marking as sent → DELETE
         cursor.execute(
-            "UPDATE email_data SET is_sended = TRUE WHERE id = ANY(%s);",
+            "DELETE FROM email_data WHERE id = ANY(%s);",
             (ids,)
         )
         conn.commit()
-        print(f"✅ Marked {len(ids)} as sent")
+        print(f"🗑️ Deleted {len(ids)} emails after sending")
 
     cursor.close()
     conn.close()
