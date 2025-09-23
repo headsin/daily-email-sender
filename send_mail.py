@@ -85,7 +85,7 @@ def process_batch(batch_size=100):
 
 
 if __name__ == "__main__":
-    process_batch(400)
+    process_batch(200)
 
 # print("hello world")
 
